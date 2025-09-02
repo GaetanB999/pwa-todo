@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2196F3">
+    <meta name="description" content="Une PWA simple de gestion de tâches">
+    <!-- Manifest pour PWA -->
+    <link rel="manifest" href="./manifest.json" />
+    <title>Ma PWA - Liste de Tâches</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        #taskInput {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        #taskInput:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+
+        #addBtn {
+            padding: 12px 24px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        #addBtn:hover {
+            background-color: #1976D2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+        }
+
+        #addBtn:active {
+            transform: translateY(0);
+        }
+
+        .task-list {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        .task-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .task-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .task-item.completed {
+            opacity: 0.7;
+        }
+
+        .task-item.completed .task-text {
+            text-decoration: line-through;
+            color: #666;
+        }
+
+        .task-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .task-text {
+            flex: 1;
+            font-size: 16px;
+        }
+
+        .delete-btn {
+            background-color: #ff5252;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .delete-btn:hover {
+            background-color: #d32f2f;
+            transform: scale(1.05);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .stats {
+            background: white;
+            padding: 15px 20px;
+            margin-top: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+        }
+
+        .stat-item h3 {
+            color: #2196F3;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .stat-item p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .install-prompt {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 1000;
+        }
+
+        .install-prompt button {
+            margin-left: 10px;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .install-btn {
+            background-color: #2196F3;
+            color: white;
+        }
+
+        .install-btn:hover {
+            background-color: #1976D2;
+        }
+
+        .cancel-btn {
+            background-color: #e0e0e0;
+            color: #666;
+        }
+
+        .cancel-btn:hover {
+            background-color: #d0d0d0;
+        }
+
+        .offline-banner {
+            display: none;
+            background-color: #ff9800;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-banner" id="offlineBanner">
+        Mode hors ligne - Les modifications seront synchronisées à la reconnexion
+    </div>
+
+    <div class="header">
+        <h1>📝 Ma Liste de Tâches PWA</h1>
+        <p>Une application web progressive simple et efficace</p>
+    </div>
+
+    <div class="container">
+        <div class="input-container">
+            <input type="text" id="taskInput" placeholder="Ajouter une nouvelle tâche..." />
+            <button id="addBtn">Ajouter</button>
+        </div>
+
+        <div class="task-list" id="taskList">
+            <div class="empty-state">
+                <p>Aucune tâche pour le moment. Ajoutez-en une !</p>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <h3 id="totalTasks">0</h3>
+                <p>Total</p>
+            </div>
+            <div class="stat-item">
+                <h3 id="completedTasks">0</h3>
+                <p>Complétées</p>
+            </div>
+            <div class="stat-item">
+                <h3 id="pendingTasks">0</h3>
+                <p>En cours</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="install-prompt" id="installPrompt">
+        <span>Installer l'application sur votre appareil ?</span>
+        <button class="install-btn" id="installBtn">Installer</button>
+        <button class="cancel-btn" id="cancelBtn">Plus tard</button>
+    </div>
+
+    <script>
+        // Gestion des tâches
+        let tasks = JSON.parse(localStorage.getItem('pwa-tasks')) || [];
+        let deferredPrompt;
+
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                .then(registration => console.log('Service Worker enregistré'))
+                .catch(error => console.log('Erreur Service Worker:', error));
+            });
+        }
+
+        // Détection du mode hors ligne
+        window.addEventListener('online', () => {
+            document.getElementById('offlineBanner').style.display = 'none';
+        });
+
+        window.addEventListener('offline', () => {
+            document.getElementById('offlineBanner').style.display = 'block';
+        });
+
+        // Gestion de l'installation PWA
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installPrompt').style.display = 'block';
+        });
+
+        document.getElementById('installBtn').addEventListener('click', () => {
+            document.getElementById('installPrompt').style.display = 'none';
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('PWA installée');
+                }
+                deferredPrompt = null;
+            });
+        });
+
+        document.getElementById('cancelBtn').addEventListener('click', () => {
+            document.getElementById('installPrompt').style.display = 'none';
+        });
+
+        // Fonctions de gestion des tâches
+        function saveTasks() {
+            localStorage.setItem('pwa-tasks', JSON.stringify(tasks));
+            updateStats();
+        }
+
+        function renderTasks() {
+            const taskList = document.getElementById('taskList');
+            
+            if (tasks.length === 0) {
+                taskList.innerHTML = '<div class="empty-state"><p>Aucune tâche pour le moment. Ajoutez-en une !</p></div>';
+                return;
+            }
+
+            taskList.innerHTML = tasks.map((task, index) => `
+                <div class="task-item ${task.completed ? 'completed' : ''}">
+                    <input type="checkbox" class="task-checkbox" 
+                           ${task.completed ? 'checked' : ''} 
+                           onchange="toggleTask(${index})">
+                    <span class="task-text">${task.text}</span>
+                    <button class="delete-btn" onclick="deleteTask(${index})">Supprimer</button>
+                </div>
+            `).join('');
+        }
+
+        function addTask() {
+            const input = document.getElementById('taskInput');
+            const text = input.value.trim();
+            
+            if (text) {
+                tasks.unshift({
+                    text: text,
+                    completed: false,
+                    createdAt: new Date().toISOString()
+                });
+                input.value = '';
+                saveTasks();
+                renderTasks();
+            }
+        }
+
+        function toggleTask(index) {
+            tasks[index].completed = !tasks[index].completed;
+            saveTasks();
+            renderTasks();
+        }
+
+        function deleteTask(index) {
+            tasks.splice(index, 1);
+            saveTasks();
+            renderTasks();
+        }
+
+        function updateStats() {
+            const total = tasks.length;
+            const completed = tasks.filter(t => t.completed).length;
+            const pending = total - completed;
+            
+            document.getElementById('totalTasks').textContent = total;
+            document.getElementById('completedTasks').textContent = completed;
+            document.getElementById('pendingTasks').textContent = pending;
+        }
+
+        // Event listeners
+        document.getElementById('addBtn').addEventListener('click', addTask);
+        document.getElementById('taskInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addTask();
+        });
+
+        // Initialisation
+        renderTasks();
+        updateStats();
+
+    </script>
+</body>
+</html>

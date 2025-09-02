@@ -1,0 +1,25 @@
+{
+    "name": "Ma PWA - Liste de Tâches",
+    "short_name": "Tâches PWA",
+    "description": "Une application de gestion de tâches progressive",
+    "start_url": "./index.html",
+    "scope": "./",
+    "display": "standalone",
+    "theme_color": "#2196F3",
+    "background_color": "#ffffff",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "./icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "./icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}
