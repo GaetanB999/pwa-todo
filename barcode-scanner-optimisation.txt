@@ -1,0 +1,39 @@
+// 1. Limiter la zone de scan
+function scanSpecificArea(video, x, y, width, height) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = width;
+    canvas.height = height;
+    ctx.drawImage(video, x, y, width, height, 0, 0, width, height);
+    return canvas;
+}
+
+// 2. Debounce pour éviter les scans multiples
+let lastScan = '';
+let lastScanTime = 0;
+
+function handleScanResult(result) {
+    const now = Date.now();
+    if (result === lastScan && now - lastScanTime < 2000) {
+        return; // Ignorer les doublons
+    }
+    lastScan = result;
+    lastScanTime = now;
+    // Traiter le résultat
+}
+
+// 3. Feedback utilisateur
+function scanFeedback() {
+    // Vibration
+    if ('vibrate' in navigator) {
+        navigator.vibrate(200);
+    }
+    // Son
+    const audio = new Audio('data:audio/wav;base64,UklGRi...');
+    audio.play();
+    // Visuel
+    document.body.style.backgroundColor = '#4CAF50';
+    setTimeout(() => {
+        document.body.style.backgroundColor = '';
+    }, 200);
+}

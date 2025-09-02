@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2196F3">
+    <title>PWA Scanner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .scanner-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto 20px;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            display: none;
+        }
+
+        #video {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .scan-region {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 250px;
+            height: 250px;
+            border: 2px solid #4CAF50;
+            border-radius: 10px;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+        }
+
+        .scan-line {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #4CAF50, transparent);
+            top: 0;
+            animation: scan 2s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: #2196F3;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1976D2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+
+        .btn-success {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .results {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .result-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            border-left: 4px solid #2196F3;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .result-item strong {
+            color: #1976D2;
+        }
+
+        .result-item .timestamp {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #f44336;
+        }
+
+        .info {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196F3;
+        }
+
+        .scanner-type {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .radio-option {
+            flex: 1;
+        }
+
+        .radio-option input[type="radio"] {
+            display: none;
+        }
+
+        .radio-option label {
+            display: block;
+            padding: 10px;
+            text-align: center;
+            background: #f5f5f5;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .radio-option input[type="radio"]:checked + label {
+            background: #2196F3;
+            color: white;
+        }
+
+        .supported-formats {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .format-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .format-tag {
+            background: #e3f2fd;
+            color: #1976D2;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 14px;
+        }
+
+        #canvas {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📷 Scanner PWA</h1>
+        <p>Scanner de codes-barres et QR codes</p>
+    </div>
+
+    <div class="container">
+        <div class="scanner-type">
+            <div class="radio-option">
+                <input type="radio" id="native" name="scanner" value="native" checked>
+                <label for="native">API Native</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" id="zxing" name="scanner" value="zxing">
+                <label for="zxing">ZXing-JS</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" id="quagga" name="scanner" value="quagga">
+                <label for="quagga">QuaggaJS</label>
+            </div>
+        </div>
+
+        <div id="supportInfo" class="info"></div>
+
+        <div class="controls">
+            <button id="startBtn" class="btn-primary">🎥 Démarrer le scanner</button>
+            <button id="stopBtn" class="btn-danger" style="display: none;">⏹️ Arrêter</button>
+        </div>
+
+        <div class="scanner-container" id="scannerContainer">
+            <video id="video" playsinline></video>
+            <div class="scan-region">
+                <div class="scan-line"></div>
+            </div>
+            <canvas id="canvas"></canvas>
+        </div>
+
+        <div class="supported-formats">
+            <h3>Formats supportés</h3>
+            <div class="format-list" id="formatList">
+                <span class="format-tag">QR Code</span>
+                <span class="format-tag">Code 128</span>
+                <span class="format-tag">Code 39</span>
+                <span class="format-tag">EAN-13</span>
+                <span class="format-tag">EAN-8</span>
+                <span class="format-tag">UPC-A</span>
+                <span class="format-tag">UPC-E</span>
+                <span class="format-tag">Data Matrix</span>
+                <span class="format-tag">PDF417</span>
+                <span class="format-tag">Aztec</span>
+            </div>
+        </div>
+
+        <div class="results">
+            <h3>📋 Résultats du scan</h3>
+            <div id="resultsList">
+                <p style="color: #999;">Aucun code scanné pour le moment</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let stream = null;
+        let scanning = false;
+        let selectedScanner = 'native';
+        let scanHistory = [];
+
+        // Vérification du support
+        function checkSupport() {
+            const supportInfo = document.getElementById('supportInfo');
+            const formats = document.getElementById('formatList');
+            
+            if ('BarcodeDetector' in window) {
+                supportInfo.innerHTML = '✅ API BarcodeDetector native supportée !';
+                supportInfo.className = 'info';
+                
+                // Afficher les formats supportés
+                BarcodeDetector.getSupportedFormats().then(supportedFormats => {
+                    formats.innerHTML = supportedFormats.map(format => 
+                        `<span class="format-tag">${format}</span>`
+                    ).join('');
+                });
+            } else {
+                supportInfo.innerHTML = '⚠️ API native non supportée. Utilisez ZXing-JS ou QuaggaJS.';
+                supportInfo.className = 'error';
+            }
+        }
+
+        // Sélection du scanner
+        document.querySelectorAll('input[name="scanner"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                selectedScanner = e.target.value;
+                checkSupport();
+            });
+        });
+
+        // Démarrer le scanner
+        document.getElementById('startBtn').addEventListener('click', async () => {
+            try {
+                // Demander l'accès à la caméra
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'environment', // Caméra arrière
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                });
+
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+                
+                document.getElementById('scannerContainer').style.display = 'block';
+                document.getElementById('startBtn').style.display = 'none';
+                document.getElementById('stopBtn').style.display = 'block';
+                
+                scanning = true;
+
+                // Démarrer le scan selon le type sélectionné
+                if (selectedScanner === 'native' && 'BarcodeDetector' in window) {
+                    startNativeScanning();
+                } else if (selectedScanner === 'zxing') {
+                    startZxingScanning();
+                } else if (selectedScanner === 'quagga') {
+                    startQuaggaScanning();
+                }
+                
+            } catch (err) {
+                console.error('Erreur:', err);
+                showError('Impossible d\'accéder à la caméra. Vérifiez les permissions.');
+            }
+        });
+
+        // Arrêter le scanner
+        document.getElementById('stopBtn').addEventListener('click', () => {
+            stopScanning();
+        });
+
+        // Scanner natif
+        async function startNativeScanning() {
+            const barcodeDetector = new BarcodeDetector();
+            const video = document.getElementById('video');
+
+            async function scan() {
+                if (!scanning) return;
+
+                try {
+                    const barcodes = await barcodeDetector.detect(video);
+                    
+                    if (barcodes.length > 0) {
+                        for (const barcode of barcodes) {
+                            addResult(barcode.rawValue, barcode.format);
+                        }
+                        // Vibration si disponible
+                        if ('vibrate' in navigator) {
+                            navigator.vibrate(200);
+                        }
+                    }
+                } catch (err) {
+                    console.error('Erreur scan:', err);
+                }
+
+                // Continuer le scan
+                requestAnimationFrame(scan);
+            }
+
+            // Démarrer le scan
+            scan();
+        }
+
+        // ZXing-JS (simulé - nécessite la librairie)
+        function startZxingScanning() {
+            // Simulation - En réalité, il faut charger la librairie ZXing-JS
+            showError('ZXing-JS nécessite l\'import de la librairie. Voir le code pour l\'implémentation.');
+            
+            // Code réel avec ZXing-JS :
+            /*
+            const codeReader = new ZXing.BrowserMultiFormatReader();
+            codeReader.decodeFromVideoDevice(null, 'video', (result, err) => {
+                if (result) {
+                    addResult(result.text, 'ZXing');
+                }
+            });
+            */
+        }
+
+        // QuaggaJS (simulé - nécessite la librairie)
+        function startQuaggaScanning() {
+            // Simulation - En réalité, il faut charger la librairie QuaggaJS
+            showError('QuaggaJS nécessite l\'import de la librairie. Voir le code pour l\'implémentation.');
+            
+            // Code réel avec QuaggaJS :
+            /*
+            Quagga.init({
+                inputStream: {
+                    name: "Live",
+                    type: "LiveStream",
+                    target: document.querySelector('#video')
+                },
+                decoder: {
+                    readers: ["code_128_reader", "ean_reader", "ean_8_reader", "code_39_reader"]
+                }
+            }, function(err) {
+                if (!err) {
+                    Quagga.start();
+                    Quagga.onDetected(function(result) {
+                        addResult(result.codeResult.code, result.codeResult.format);
+                    });
+                }
+            });
+            */
+        }
+
+        // Ajouter un résultat
+        function addResult(value, format) {
+            const timestamp = new Date().toLocaleString('fr-FR');
+            const result = {
+                value: value,
+                format: format,
+                timestamp: timestamp
+            };
+            
+            // Éviter les doublons rapides
+            const lastResult = scanHistory[0];
+            if (lastResult && lastResult.value === value && 
+                (Date.now() - new Date(lastResult.timestamp).getTime()) < 2000) {
+                return;
+            }
+            
+            scanHistory.unshift(result);
+            displayResults();
+            
+            // Copier dans le presse-papiers
+            navigator.clipboard.writeText(value).then(() => {
+                console.log('Copié dans le presse-papiers:', value);
+            });
+        }
+
+        // Afficher les résultats
+        function displayResults() {
+            const resultsList = document.getElementById('resultsList');
+            
+            if (scanHistory.length === 0) {
+                resultsList.innerHTML = '<p style="color: #999;">Aucun code scanné pour le moment</p>';
+                return;
+            }
+            
+            resultsList.innerHTML = scanHistory.slice(0, 10).map(result => `
+                <div class="result-item">
+                    <strong>${result.format}</strong>: ${result.value}
+                    <div class="timestamp">${result.timestamp}</div>
+                </div>
+            `).join('');
+        }
+
+        // Arrêter le scan
+        function stopScanning() {
+            scanning = false;
+            
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            
+            document.getElementById('video').srcObject = null;
+            document.getElementById('scannerContainer').style.display = 'none';
+            document.getElementById('startBtn').style.display = 'block';
+            document.getElementById('stopBtn').style.display = 'none';
+        }
+
+        // Afficher une erreur
+        function showError(message) {
+            const container = document.querySelector('.container');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            container.insertBefore(errorDiv, container.firstChild);
+            
+            setTimeout(() => errorDiv.remove(), 5000);
+        }
+
+        // Initialisation
+        checkSupport();
+
+        // Service Worker pour PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js');
+        }
+    </script>
+</body>
+</html>
